@@ -1,0 +1,101 @@
+// Paseo Feliz - Esquema de base de datos (Prisma + Supabase PostgreSQL)
+// Docs: https://www.prisma.io/docs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  OWNER
+  WALKER
+}
+
+enum BookingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatarUrl String?
+  role      Role?
+  createdAt DateTime @default(now())
+
+  ownerProfile  Owner?
+  walkerProfile Walker?
+}
+
+model Owner {
+  id       String    @id @default(uuid())
+  userId   String    @unique
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pets     Pet[]
+  bookings Booking[]
+  reviews  Review[]
+}
+
+model Walker {
+  id           String    @id @default(uuid())
+  userId       String    @unique
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio          String?
+  pricePerHour Float?
+  latitude     Float?
+  longitude    Float?
+  city         String?
+  experience   Int?      // años de experiencia
+  verified     Boolean   @default(false)
+  available    Boolean   @default(true)
+  specialties  String[]  @default([])
+  bookings     Booking[]
+  reviews      Review[]
+}
+
+model Pet {
+  id      String  @id @default(uuid())
+  name    String
+  breed   String?
+  ownerId String
+  owner   Owner   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+}
+
+model Booking {
+  id        String        @id @default(uuid())
+  ownerId   String
+  walkerId  String
+  petId     String?
+  date      DateTime
+  duration  Int           // minutos
+  status    BookingStatus @default(PENDING)
+  location  String?
+  notes     String?
+  createdAt DateTime      @default(now())
+
+  owner  Owner  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  walker Walker @relation(fields: [walkerId], references: [id], onDelete: Cascade)
+  pet    Pet?   @relation(fields: [petId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  ownerId   String
+  walkerId  String
+  rating    Int      // 1 a 5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  owner  Owner  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  walker Walker @relation(fields: [walkerId], references: [id], onDelete: Cascade)
+}
