@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faStar as faStarSolid, faPaperPlane, faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import { faStar as faStarRegular } from "@fortawesome/free-regular-svg-icons";
@@ -8,6 +9,7 @@ import { createReview } from "@/app/walkers/actions";
 
 // Formulario para que un Owner deje una reseña a un Walker.
 export function ReviewForm({ walkerId }: { walkerId: string }) {
+  const router = useRouter();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
@@ -26,6 +28,7 @@ export function ReviewForm({ walkerId }: { walkerId: string }) {
       const res = await createReview(walkerId, rating, comment);
       if (res.error) return setError(res.error);
       setDone(true);
+      router.refresh(); // 🔄 la nueva reseña y el promedio aparecen al instante
     });
   };
 

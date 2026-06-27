@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPlus, faTrashCan, faDog } from "@fortawesome/free-solid-svg-icons";
 import { createPet, deletePet } from "@/app/dashboard/owner/actions";
@@ -11,14 +12,21 @@ export interface Pet {
   breed: string;
 }
 
-// Gestor de mascotas del Owner: alta y baja reales (con fallback demo).
+// Gestor de mascotas del Owner: alta y baja reales.
+// En modo real, la lista proviene del servidor (`pets`) y tras cada cambio se
+// llama a router.refresh() para que el panel se actualice solo, sin recargar.
+// En modo demo (sin BD) se usa una lista local optimista.
 export function PetsManager({ pets, configured }: { pets: Pet[]; configured: boolean }) {
-  const [list, setList] = useState<Pet[]>(pets);
+  const router = useRouter();
+  const [demoList, setDemoList] = useState<Pet[]>(pets);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [breed, setBreed] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // Fuente de verdad: en real, los datos del servidor; en demo, el estado local.
+  const list = configured ? pets : demoList;
 
   const add = (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,29 +34,32 @@ export function PetsManager({ pets, configured }: { pets: Pet[]; configured: boo
     if (!name.trim()) return setError("El nombre es obligatorio.");
 
     if (!configured) {
-      setList((l) => [...l, { id: `demo-${Date.now()}`, name, breed }]);
+      setDemoList((l) => [...l, { id: `demo-${Date.now()}`, name, breed }]);
       setName("");
       setBreed("");
       setAdding(false);
       return;
     }
+
     startTransition(async () => {
       const res = await createPet(name, breed);
       if (res.error) return setError(res.error);
-      // El revalidatePath del server refresca la lista; cerramos el form.
       setName("");
       setBreed("");
       setAdding(false);
+      router.refresh(); // 🔄 actualiza el panel con la mascota recién creada
     });
   };
 
   const remove = (id: string) => {
     if (!configured) {
-      setList((l) => l.filter((p) => p.id !== id));
+      setDemoList((l) => l.filter((p) => p.id !== id));
       return;
     }
     startTransition(async () => {
-      await deletePet(id);
+      const res = await deletePet(id);
+      if (res.error) return setError(res.error);
+      router.refresh(); // 🔄 refleja la baja al instante
     });
   };
 
@@ -66,7 +77,7 @@ export function PetsManager({ pets, configured }: { pets: Pet[]; configured: boo
           <button
             onClick={() => remove(p.id)}
             disabled={pending}
-            className="text-ink/30 transition-colors hover:text-red-600"
+            className="text-ink/30 transition-colors hover:text-red-600 disabled:opacity-40"
             aria-label={`Eliminar ${p.name}`}
           >
             <FontAwesomeIcon icon={faTrashCan} />
@@ -100,7 +111,14 @@ export function PetsManager({ pets, configured }: { pets: Pet[]; configured: boo
             <button type="submit" disabled={pending} className="btn-primary flex-1 py-2 text-sm">
               {pending ? "Guardando..." : "Guardar"}
             </button>
-            <button type="button" onClick={() => setAdding(false)} className="btn-ghost py-2 text-sm">
+            <button
+              type="button"
+              onClick={() => {
+                setAdding(false);
+                setError(null);
+              }}
+              className="btn-ghost py-2 text-sm"
+            >
               Cancelar
             </button>
           </div>
