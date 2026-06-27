@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
-import { getFeaturedWalkers } from "@/lib/data";
+import { getFeaturedWalkers } from "@/lib/queries";
 import { WalkerCard } from "@/components/walkers/WalkerCard";
 
-export function WalkersPreview() {
-  const walkers = getFeaturedWalkers(4);
+export async function WalkersPreview() {
+  const walkers = await getFeaturedWalkers(4);
 
   return (
     <section id="paseadores" className="py-20">

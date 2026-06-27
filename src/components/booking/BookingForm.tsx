@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -13,28 +13,68 @@ import {
   faCircleCheck,
   faPaw,
 } from "@fortawesome/free-solid-svg-icons";
+import { createBooking } from "@/app/booking/actions";
 import type { Walker } from "@/lib/types";
 
 const durations = [20, 30, 45, 60, 90];
 
-export function BookingForm({ walkers, initialWalkerId }: { walkers: Walker[]; initialWalkerId?: string }) {
+export interface PetOption {
+  id: string;
+  name: string;
+  breed: string;
+}
+
+export function BookingForm({
+  walkers,
+  initialWalkerId,
+  pets,
+  configured,
+}: {
+  walkers: Walker[];
+  initialWalkerId?: string;
+  pets: PetOption[];
+  configured: boolean;
+}) {
   const [walkerId, setWalkerId] = useState(initialWalkerId ?? walkers[0]?.id ?? "");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [duration, setDuration] = useState(45);
-  const [pet, setPet] = useState("Toby");
+  const [petId, setPetId] = useState(pets[0]?.id ?? "");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
   const walker = walkers.find((w) => w.id === walkerId);
   const estimate = walker ? Math.round((walker.pricePerHour * duration) / 60) : 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // En modo demo solo mostramos confirmación. Con Supabase conectado, aquí
-    // se crearía el Booking (status PENDING) que llega al walker seleccionado.
-    setSubmitted(true);
+    setError(null);
+
+    // Modo demo: solo mostramos confirmación.
+    if (!configured) {
+      setSubmitted(true);
+      return;
+    }
+
+    const isoDate = new Date(`${date}T${time || "09:00"}`).toISOString();
+    startTransition(async () => {
+      const res = await createBooking({
+        walkerId,
+        petId: petId || null,
+        date: isoDate,
+        duration,
+        location,
+        notes,
+      });
+      if (res.error) {
+        setError(res.error);
+        return;
+      }
+      setSubmitted(true);
+    });
   };
 
   if (submitted && walker) {
@@ -125,10 +165,28 @@ export function BookingForm({ walkers, initialWalkerId }: { walkers: Walker[]; i
 
         <div className="grid gap-6 sm:grid-cols-2">
           <Field label="Mascota" icon={faDog}>
-            <select value={pet} onChange={(e) => setPet(e.target.value)} className="input">
-              <option value="Toby">Toby (Labrador)</option>
-              <option value="Otro">Otra mascota...</option>
-            </select>
+            {pets.length > 0 ? (
+              <select
+                value={petId}
+                onChange={(e) => setPetId(e.target.value)}
+                className="input"
+              >
+                {pets.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.breed ? ` (${p.breed})` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <p className="rounded-xl bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+                Aún no tienes mascotas.{" "}
+                <Link href="/dashboard/owner" className="font-semibold underline">
+                  Añade una
+                </Link>{" "}
+                en tu panel (o continúa sin asignar).
+              </p>
+            )}
           </Field>
           <Field label="Ubicación de recogida" icon={faLocationDot}>
             <input
@@ -180,10 +238,15 @@ export function BookingForm({ walkers, initialWalkerId }: { walkers: Walker[]; i
             <span className="font-bold text-ink">Estimado</span>
             <span className="font-display text-2xl font-extrabold text-primary">${estimate}</span>
           </div>
-          <button type="submit" className="btn-primary mt-5 w-full">
+          <button type="submit" disabled={pending} className="btn-primary mt-5 w-full">
             <FontAwesomeIcon icon={faCircleCheck} />
-            Enviar solicitud
+            {pending ? "Enviando..." : "Enviar solicitud"}
           </button>
+          {error && (
+            <p className="mt-3 rounded-lg bg-amber-50 p-2.5 text-center text-sm text-amber-800">
+              {error}
+            </p>
+          )}
           <p className="mt-3 text-center text-xs text-ink/50">
             La solicitud llega al paseador, que puede aceptarla o rechazarla.
           </p>

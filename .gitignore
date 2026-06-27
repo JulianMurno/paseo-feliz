@@ -38,4 +38,7 @@ yarn-error.log*
 prompt.md
 GOOGLE_OAUTH_SETUP.md
 README.md
+doc.md
 .vercel
+dev.log
+DB_SETUP.md

@@ -66,10 +66,18 @@ export function WalkerCard({ walker }: { walker: Walker }) {
 
         <div className="mt-auto flex items-center justify-between pt-5">
           <p className="text-ink">
-            <span className="font-display text-xl font-extrabold text-primary">
-              ${walker.pricePerHour}
-            </span>
-            <span className="text-sm text-ink/50"> /hora</span>
+            {walker.pricePerHour > 0 ? (
+              <>
+                <span className="font-display text-xl font-extrabold text-primary">
+                  ${walker.pricePerHour}
+                </span>
+                <span className="text-sm text-ink/50"> /hora</span>
+              </>
+            ) : (
+              <span className="font-display text-sm font-bold text-ink/50">
+                Precio a convenir
+              </span>
+            )}
           </p>
           <Link href={`/walkers/${walker.id}`} className="btn-outline px-5 py-2.5">
             Ver perfil

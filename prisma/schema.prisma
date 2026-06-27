@@ -54,6 +54,7 @@ model Walker {
   latitude     Float?
   longitude    Float?
   city         String?
+  neighborhood String?
   experience   Int?      // años de experiencia
   verified     Boolean   @default(false)
   available    Boolean   @default(true)

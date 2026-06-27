@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,10 +10,11 @@ import {
   faCheck,
   faXmark,
   faFlagCheckered,
+  faBan,
 } from "@fortawesome/free-solid-svg-icons";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import type { DemoBooking } from "@/lib/bookings";
-import type { BookingStatus } from "@/lib/types";
+import { updateBookingStatus, cancelBooking } from "@/app/booking/actions";
+import type { BookingView, BookingStatus } from "@/lib/types";
 
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("es-MX", {
@@ -25,20 +26,35 @@ function formatDateTime(iso: string) {
   });
 }
 
-// Fila de reserva. En el panel del walker permite aceptar/rechazar/completar.
+// Fila de reserva con acciones reales (persisten en BD) y fallback demo.
 export function BookingRow({
   booking,
   perspective,
 }: {
-  booking: DemoBooking;
+  booking: BookingView;
   perspective: "owner" | "walker";
 }) {
   const [status, setStatus] = useState<BookingStatus>(booking.status);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
   const person =
     perspective === "owner"
       ? { name: booking.walkerName, avatar: booking.walkerAvatar, label: "Paseador" }
       : { name: booking.ownerName, avatar: booking.ownerAvatar, label: "Dueño" };
+
+  const run = (next: BookingStatus, fn: () => Promise<{ error?: string; demo?: boolean }>) => {
+    setError(null);
+    const prev = status;
+    setStatus(next); // optimista
+    startTransition(async () => {
+      const res = await fn();
+      if (res?.error) {
+        setStatus(prev); // revertir
+        setError(res.error);
+      }
+    });
+  };
 
   return (
     <div className="card p-5">
@@ -82,15 +98,20 @@ export function BookingRow({
         </p>
       )}
 
-      {/* Acciones del walker para reservas pendientes */}
+      {/* Acciones del Walker */}
       {perspective === "walker" && status === "PENDING" && (
         <div className="mt-4 flex flex-wrap gap-2">
-          <button onClick={() => setStatus("ACCEPTED")} className="btn-primary px-4 py-2 text-xs">
+          <button
+            onClick={() => run("ACCEPTED", () => updateBookingStatus(booking.id, "ACCEPTED"))}
+            disabled={pending}
+            className="btn-primary px-4 py-2 text-xs"
+          >
             <FontAwesomeIcon icon={faCheck} />
             Aceptar
           </button>
           <button
-            onClick={() => setStatus("REJECTED")}
+            onClick={() => run("REJECTED", () => updateBookingStatus(booking.id, "REJECTED"))}
+            disabled={pending}
             className="btn border-2 border-red-200 px-4 py-2 text-xs text-red-600 hover:bg-red-50"
           >
             <FontAwesomeIcon icon={faXmark} />
@@ -100,12 +121,32 @@ export function BookingRow({
       )}
       {perspective === "walker" && status === "ACCEPTED" && (
         <div className="mt-4">
-          <button onClick={() => setStatus("COMPLETED")} className="btn-outline px-4 py-2 text-xs">
+          <button
+            onClick={() => run("COMPLETED", () => updateBookingStatus(booking.id, "COMPLETED"))}
+            disabled={pending}
+            className="btn-outline px-4 py-2 text-xs"
+          >
             <FontAwesomeIcon icon={faFlagCheckered} />
             Marcar como completada
           </button>
         </div>
       )}
+
+      {/* Acción del Owner: cancelar */}
+      {perspective === "owner" && (status === "PENDING" || status === "ACCEPTED") && (
+        <div className="mt-4">
+          <button
+            onClick={() => run("CANCELLED", () => cancelBooking(booking.id))}
+            disabled={pending}
+            className="btn border-2 border-red-200 px-4 py-2 text-xs text-red-600 hover:bg-red-50"
+          >
+            <FontAwesomeIcon icon={faBan} />
+            Cancelar reserva
+          </button>
+        </div>
+      )}
+
+      {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
     </div>
   );
 }

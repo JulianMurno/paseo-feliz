@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getWalkers } from "@/lib/data";
+import { getWalkers } from "@/lib/queries";
 import { WalkersExplorer } from "@/components/walkers/WalkersExplorer";
 
 export const metadata: Metadata = {
@@ -8,8 +8,8 @@ export const metadata: Metadata = {
     "Explora paseadores de perros verificados cerca de ti. Filtra por valoración, precio y proximidad con nuestro mapa en vivo.",
 };
 
-export default function WalkersPage() {
-  const walkers = getWalkers();
+export default async function WalkersPage() {
+  const walkers = await getWalkers();
 
   return (
     <div className="bg-gradient-to-b from-primary/5 to-white">

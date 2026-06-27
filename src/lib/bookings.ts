@@ -1,26 +1,13 @@
-import type { BookingStatus } from "./types";
+import type { BookingView } from "./types";
 
-// Reservas de ejemplo (modo demo) para poblar los paneles.
-export interface DemoBooking {
-  id: string;
-  walkerName: string;
-  walkerAvatar: string;
-  ownerName: string;
-  ownerAvatar: string;
-  petName: string;
-  petBreed: string;
-  date: string; // ISO
-  duration: number; // minutos
-  location: string;
-  notes?: string;
-  status: BookingStatus;
-}
-
-export const demoBookings: DemoBooking[] = [
+// Reservas de ejemplo (modo demo) para poblar los paneles cuando no hay BD.
+export const demoBookings: BookingView[] = [
   {
     id: "b1",
+    walkerId: "carlos-m",
     walkerName: "Carlos M.",
     walkerAvatar: "https://i.pravatar.cc/100?img=12",
+    ownerId: "owner-lucia",
     ownerName: "Lucía Fernández",
     ownerAvatar: "https://i.pravatar.cc/100?img=45",
     petName: "Toby",
@@ -33,8 +20,10 @@ export const demoBookings: DemoBooking[] = [
   },
   {
     id: "b2",
+    walkerId: "valeria-s",
     walkerName: "Valeria S.",
     walkerAvatar: "https://i.pravatar.cc/100?img=47",
+    ownerId: "owner-lucia",
     ownerName: "Lucía Fernández",
     ownerAvatar: "https://i.pravatar.cc/100?img=45",
     petName: "Toby",
@@ -46,8 +35,10 @@ export const demoBookings: DemoBooking[] = [
   },
   {
     id: "b3",
+    walkerId: "carlos-m",
     walkerName: "Carlos M.",
     walkerAvatar: "https://i.pravatar.cc/100?img=12",
+    ownerId: "owner-diego",
     ownerName: "Diego Ramírez",
     ownerAvatar: "https://i.pravatar.cc/100?img=33",
     petName: "Rocco",
@@ -59,10 +50,10 @@ export const demoBookings: DemoBooking[] = [
   },
 ];
 
-export function ownerBookings(): DemoBooking[] {
+export function ownerBookings(): BookingView[] {
   return demoBookings.filter((b) => b.ownerName === "Lucía Fernández");
 }
 
-export function walkerBookings(): DemoBooking[] {
+export function walkerBookings(): BookingView[] {
   return demoBookings.filter((b) => b.walkerName === "Carlos M.");
 }

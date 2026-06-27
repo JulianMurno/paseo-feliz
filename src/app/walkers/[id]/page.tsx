@@ -10,24 +10,25 @@ import {
   faPaw,
   faCalendarCheck,
 } from "@fortawesome/free-solid-svg-icons";
-import { getWalkerById, getWalkers } from "@/lib/data";
+import { getWalkerById } from "@/lib/queries";
+import { getSessionUser } from "@/lib/auth";
 import { StarRating } from "@/components/ui/StarRating";
 import { ReviewList } from "@/components/walkers/ReviewList";
+import { ReviewForm } from "@/components/walkers/ReviewForm";
 
-export function generateStaticParams() {
-  return getWalkers().map((w) => ({ id: w.id }));
-}
-
-export function generateMetadata({ params }: { params: { id: string } }): Metadata {
-  const walker = getWalkerById(params.id);
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const walker = await getWalkerById(params.id);
   return {
     title: walker ? `${walker.name} | Paseo Feliz` : "Paseador | Paseo Feliz",
   };
 }
 
-export default function WalkerDetailPage({ params }: { params: { id: string } }) {
-  const walker = getWalkerById(params.id);
+export default async function WalkerDetailPage({ params }: { params: { id: string } }) {
+  const walker = await getWalkerById(params.id);
   if (!walker) notFound();
+
+  const user = await getSessionUser();
+  const canReview = user?.role === "OWNER";
 
   return (
     <div className="container-px py-10">
@@ -104,6 +105,11 @@ export default function WalkerDetailPage({ params }: { params: { id: string } })
               </h2>
               <StarRating rating={walker.rating} size="md" />
             </div>
+            {canReview && (
+              <div className="mt-5">
+                <ReviewForm walkerId={walker.id} />
+              </div>
+            )}
             <div className="mt-5">
               <ReviewList reviews={walker.reviews} />
             </div>

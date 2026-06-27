@@ -38,6 +38,24 @@ export interface Walker {
   reviews: Review[];
 }
 
+// Vista de una reserva tal como la consumen los componentes (datos ya unidos).
+export interface BookingView {
+  id: string;
+  walkerId: string;
+  walkerName: string;
+  walkerAvatar: string;
+  ownerId: string;
+  ownerName: string;
+  ownerAvatar: string;
+  petName: string;
+  petBreed: string;
+  date: string; // ISO
+  duration: number; // minutos
+  location: string;
+  notes?: string;
+  status: BookingStatus;
+}
+
 export interface PricingPlan {
   id: string;
   name: string;
